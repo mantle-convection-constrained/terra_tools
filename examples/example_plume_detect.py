@@ -139,6 +139,14 @@ plm1_top_coords = model.plumes.plm_coords[1][0]
 
 # %% [markdown]
 """
+We include a method for calculating plume buoyancy fluxes.
+By default the routine assumes a constant thermal expansivity with depth, but this you
+can toggle a depth varying expansivity for example by passing `eos=Murnghan`.
+Buoyancy flux calculations require a density field to be present in the TerraModel so
+we can not calculate it with this example data, but your command might look something
+like this `model.plumes.buoyancy_flux(400,depth=True)`.
+
+
 Finally lets produce a map of the stacked array of points which were considered to be
 plume-like by the k-means clustering. We will also plot centroid in the top layer of
 each detected plume.

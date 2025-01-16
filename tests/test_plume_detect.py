@@ -18,7 +18,9 @@ class TestPlumeDetect(unittest.TestCase):
     def test_terra_model_read_netcdf(self):
         npts = 10000
         nlayers = 8
-        lon, lat, r, fields, c_hist_names = tst.random_model(npts, nlayers)
+        lon, lat, r, fields, c_hist_names = tst.random_model(
+            npts, nlayers, density=True
+        )
 
         with tempfile.TemporaryDirectory() as dir:
             filebase = os.path.join(dir, "test_netcdf_file_")
@@ -31,6 +33,7 @@ class TestPlumeDetect(unittest.TestCase):
         model.detect_plumes()
         model.plumes.calc_centroids()
         model.plumes.radial_field("t")
+        model.plumes.buoyancy_flux(300, depth=True)
 
         self.assertTrue(hasattr(model.plumes, "centroids"))
         self.assertTrue(hasattr(model.plumes, "n_plms"))
@@ -40,6 +43,8 @@ class TestPlumeDetect(unittest.TestCase):
         self.assertTrue(hasattr(model.plumes, "plm_depth_range"))
         self.assertTrue(hasattr(model.plumes, "plm_depths"))
         self.assertTrue(hasattr(model.plumes, "plm_flds"))
+        self.assertTrue(hasattr(model.plumes, "flux"))
+        self.assertTrue(hasattr(model.plumes, "excess_t"))
 
 
 if __name__ == "__main__":

@@ -30,3 +30,6 @@ _First release._
   ## [1.1.1-DEV]
 
   - Fix bug in reading model files without composition
+
+  ## [1.2.0-DEV] 
+  - Add feature for calculating plume buoyancy flux

@@ -151,7 +151,7 @@ def write_seismic_netcdf_files(
     return [filebase + f"{ifile}.nc" for ifile in range(nfiles)]
 
 
-def random_model(npts, nlayers):
+def random_model(npts, nlayers, density=False):
     """
     Create a random model with fields t, c_hist and u_xyz, with named
     compositions
@@ -168,6 +168,10 @@ def random_model(npts, nlayers):
         "u_xyz": np.random.rand(nlayers, npts, 3).astype(value_type),
         "c_hist": np.random.rand(2, nlayers, npts).astype(value_type),
     }
+
+    if density:
+        fields["density"] = np.random.rand(nlayers, npts).astype(value_type)
+
     c_hist_names = ["harzburgite", "lherzolite"]
 
     return lon, lat, r, fields, c_hist_names

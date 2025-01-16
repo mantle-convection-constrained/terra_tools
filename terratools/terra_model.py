@@ -2141,6 +2141,127 @@ class TerraModel:
             if show:
                 fig.show()
 
+        def buoyancy_flux(
+            self,
+            rad,
+            eos="incompressible",
+            alpha_fixed=2.0e-5,
+            depth=False,
+            print_flux=False,
+        ):
+            """
+            Call to calculate buoyancy flux of plumes at each radial layer where
+            they have been detected. Also will calculate and store plume excess temperatures.
+
+            :param rad: radius at which to calculate plume buoyancy flux
+            :type rad: numpy.float
+            :param eos: equation of state (will determine the value of alpha used)
+            :type eos: str
+            :param alpha_fixed: value of alpha for incompressible case (constant with depth)
+            :type alpha_fixed: float
+            :param depth: toggle True if passing in a depth to rad
+            :type depth: bool
+            """
+
+            # First we get the average temp for each layer
+            # 1. (tav) average for whole layer
+            # 2. (tav_bg) average for whole layer excluding material cooler than layer average (Hassan et al 2015)
+            depths = self._model.get_radii()[-1] - self._model.get_radii()
+            tav = np.zeros(len(depths))
+            tav_bg = np.zeros(len(depths))
+            for l in range(len(depths)):
+                tav[l] = np.average(self._model.get_field("t")[l, :])
+                mask = self._model.get_field("t")[l, :] > tav[l]
+                if sum(mask) == 0:  # in case of isothermal boundary condition
+                    tav_bg[l] = tav[l]
+                else:
+                    tav_bg[l] = np.average(self._model.get_field("t")[l, :][mask])
+
+            # Check if plm_flds exists
+            if not hasattr(self, "plm_flds"):
+                self.plm_flds = {}
+
+            if "t" not in self.plm_flds.keys():
+                self.radial_field("t")
+
+            # Now we calculate the excess temperature of each plume at each radial layer where they are detected
+            self.excess_t = {}
+            for plume in self.plm_depths.keys():
+                self.excess_t[plume] = {}
+                self.excess_t[plume]["tav"] = np.zeros(len(self.plm_depths[plume]))
+                self.excess_t[plume]["tav_bg"] = np.zeros(len(self.plm_depths[plume]))
+                for i, d in enumerate(self.plm_depths[plume]):
+                    lyr = self._model.nearest_layer(self._model.get_radii()[-1] - d)[0]
+                    plm_lyr_mean = np.average(self.plm_flds["t"][plume][i])
+                    self.excess_t[plume]["tav"][i] = plm_lyr_mean - tav[lyr]
+                    self.excess_t[plume]["tav_bg"][i] = plm_lyr_mean - tav_bg[lyr]
+
+            if eos != "incompressible":
+                from . import alpha_data
+
+                alph_r = alpha_data.alpha(eos, self._model)
+            else:
+                alph_r = np.zeros(self._model._nlayers)
+                alph_r[:] = alpha_fixed
+
+            if "density" not in self.plm_flds.keys():
+                self.radial_field("density")
+
+            if "u_enu" not in self.plm_flds.keys():
+                self.radial_field("u_enu")
+
+            if depth:
+                fdepth = rad
+            else:
+                fdepth = np.max(self._model.get_radii()) - rad
+
+            self.flux = {}  # dictionary to store plume flux
+
+            for plume in self.plm_depths.keys():
+                flux = 0.0
+                flux_bg = 0.0
+                layer = self._model.nearest_layer(fdepth, depth=True)[0]
+                plind = np.where(
+                    self.plm_depths[plume]
+                    == self._model.get_radii()[-1] - self._model.get_radii()[layer]
+                )[0]
+                if len(plind) == 1:
+                    plind = plind[0]
+                    depth = self.plm_depths[plume][plind]
+                    sa = (
+                        4 * np.pi * (self._model.get_radii()[layer] * 1000) ** 2
+                    )  # surface area at radius
+                    # estimate surface area of a cell
+                    sa /= self._model._npts
+                    for i, rho in enumerate(self.plm_flds["density"][plume][plind]):
+                        # flux+=rho*alhpa*
+                        flux += (
+                            rho
+                            * alph_r[layer]
+                            * self.excess_t[plume]["tav"][plind]
+                            * self.plm_flds["u_enu"][2][plume][plind][i]
+                            * sa
+                        )  # multiply by area
+                        flux_bg += (
+                            rho
+                            * alph_r[layer]
+                            * self.excess_t[plume]["tav_bg"][plind]
+                            * self.plm_flds["u_enu"][2][plume][plind][i]
+                            * sa
+                        )  # multiply by area
+                    if print_flux:
+                        print(
+                            f"plumeID = {plume}   Plume buoyancy flux = {flux_bg} kg/s "
+                        )  # , {flux/3500} $m^{3} s^{-1}$')
+                    self.flux[plume] = {"tav": flux, "tav_bg": flux_bg}
+
+            # Finally calculate total positive buoyancy flux in layer and see print fraction contribution by plume
+            #
+            # mask=self._model.get_field('u_enu')[layer,:,2]>0
+            # excessT=(self._model.get_field('t')[layer,:]-tav_bg[layer])[mask]
+            # totflux=self._model.get_field('density')[layer,:][mask]*alph_r[layer]*excessT*self._model.get_field('u_enu')[layer,:,2][mask]*sa
+            # print(f"plume flux = {flux_bg/np.sum(totflux)*100}% of total positive radial flux at {np.round(self._model.nearest_layer(fdepth,depth=True)[1])} km depth")
+
 
 class TerraModelLayer(TerraModel):
     """
