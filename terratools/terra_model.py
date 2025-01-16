@@ -491,7 +491,7 @@ class TerraModel:
     def __repr__(self):
         return f"""TerraModel:
            number of radii: {self._nlayers}
-             radius limits: {(np.min(self._radius), np.max(self._radius))}
+             radius limits: {(float(np.min(self._radius)), float(np.max(self._radius)))}
   number of lateral points: {self._npts}
                     fields: {[name for name in self.field_names()]}
          composition names: {self.get_composition_names()}
