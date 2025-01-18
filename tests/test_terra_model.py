@@ -393,11 +393,18 @@ class TestTerraModelRepr(unittest.TestCase):
             c_histogram_names=cnames,
         )
 
+        # Ensure we print these numbers out in the default format for
+        # the NumPy version in use, as this changes in minor releases;
+        # see 'legacy' at:
+        # https://numpy.org/doc/stable/reference/generated/numpy.set_printoptions.html
+        rmin = terra_model.COORDINATE_TYPE(r[0])
+        rmax = terra_model.COORDINATE_TYPE(r[-1])
+
         self.assertEqual(
             model.__repr__(),
-            """TerraModel:
+            f"""TerraModel:
            number of radii: 3
-             radius limits: (1000.0, 2000.0)
+             radius limits: ({rmin}, {rmax})
   number of lateral points: 3
                     fields: ['t', 'c_hist']
          composition names: ['a', 'b']
