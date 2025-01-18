@@ -34,11 +34,14 @@ jobs:
 
   test:
     name: test
-    runs-on: [ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         python-versions: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        os:
+          - ubuntu-20.04
+          - macos-14
 
     steps:
     - uses: actions/checkout@v2
@@ -60,11 +63,14 @@ jobs:
 
   test_cartopy:
     name: Test no Cartopy
-    runs-on: [ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         python-versions: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        os:
+          - ubuntu-20.04
+          - macos-14
 
     steps:
     - uses: actions/checkout@v2
